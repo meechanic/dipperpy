@@ -35,7 +35,7 @@ def list_modules_by_module_path(module_path):
             modpkgs_names.add(modname)
     for key, value in inspect.getmembers(module, inspect.ismodule):
         if value.__name__.startswith(module.__name__ + '.') and key not in modpkgs_names:
-            ret.append({"name": value.__name__})
+            ret.append({"name": value.__name__, "module_path": module_path})
 
     return ret
 
@@ -45,7 +45,20 @@ def list_classes_by_module_path(module_path):
     module = pydoc.importfile(module_path)
     for member in inspect.getmembers(module, inspect.isclass):
         if member[1].__module__ == module.__name__:
-            ret.append( {"name": member[1].__name__, "qualname": member[1].__qualname__, "module": member[1].__module__} )
+            ret.append( {"name": member[1].__name__, "qualname": member[1].__qualname__, "module_path": module_path} )
+    return ret
+
+
+def list_functions_by_module_path(module_path):
+    ret = []
+    module = pydoc.importfile(module_path)
+    try:
+        all = module.__all__
+    except AttributeError:
+        all = None
+    for member in inspect.getmembers(module, inspect.isroutine):
+        if (all is not None or inspect.isbuiltin(member[1]) or inspect.getmodule(member[1]) is module):
+            ret.append( {"name": member[0], "module_path": module_path} )
     return ret
 
 
@@ -55,7 +68,7 @@ def list_data_by_module_path(module_path):
     reserved_names = ["__builtins__", "__cached__", "__doc__", "__file__", "__loader__", "__name__", "__package__", "__spec__"]
     for member in inspect.getmembers(module, pydoc.isdata):
         if member[0] not in reserved_names:
-            ret.append( {"name": member[0], "type_name": type(member[1]).__name__} )
+            ret.append( {"name": member[0], "type_name": type(member[1]).__name__, "module_path": module_path} )
     return ret
 
 
