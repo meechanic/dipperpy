@@ -3,12 +3,15 @@ import sys
 from dipperpy import *
 import json
 import importlib
+import pathlib
 
 
 def parse_args(argv):
     self_name = os.path.basename(argv[0])
     parser = argparse.ArgumentParser(prog=self_name,
                                      description="Extracts structure unints from python code entities")
+    parser.add_argument("-s", "--sys-paths", action="store_true", help="Print sys.path")
+    parser.add_argument("-a", "--all", action="store_true", help="All entities (may be applied to different parameters)")
     parser.add_argument("-d", "--directory", type=str, help="Directory")
     parser.add_argument("-e", "--depth", type=int, help="Depth")
     parser.add_argument("-p", "--path", type=str, help="Filesystem path to module")
@@ -44,6 +47,14 @@ def main():
                 obj = obj + list_imports_by_module_path(h["module_name"])
         else:
             obj = dir_internals
+    elif args.sys_paths:
+        for p in sys.path:
+            if not args.all:
+                if p == pathlib.Path().parent.resolve().as_posix():
+                    continue
+                if p == pathlib.Path(pathlib.Path(__file__).resolve()).parent.as_posix():
+                    continue
+            obj.append({"sys_path_component": p})
     else:
         module_path = ""
         if args.module:
