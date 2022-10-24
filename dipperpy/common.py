@@ -8,6 +8,8 @@ import inspect
 from pathlib import Path
 import pkgutil
 from io import StringIO
+import ast
+import pathlib
 
 
 # common
@@ -40,6 +42,18 @@ def list_modules_by_module_path(module_path):
     return ret
 
 
+def get_files_list(root):
+    ret = []
+    for path, subdirs, files in os.walk(root):
+        for name in files:
+            ret.append(pathlib.PurePath(path, name).as_posix())
+    return ret
+
+
+def get_files_list_py(path):
+    d_l = get_files_list(path)
+    return [e for e in d_l if e.endswith(".py")]
+
 def list_classes_by_module_path(module_path):
     ret = []
     module = pydoc.importfile(module_path)
@@ -59,6 +73,37 @@ def list_functions_by_module_path(module_path):
     for member in inspect.getmembers(module, inspect.isroutine):
         if (all is not None or inspect.isbuiltin(member[1]) or inspect.getmodule(member[1]) is module):
             ret.append( {"name": member[0], "module_path": module_path} )
+    return ret
+
+
+def list_imports_by_module_path(module_path):
+    ret = []
+    with open(module_path, "r") as f:
+        content = f.read()
+        for node in ast.iter_child_nodes(ast.parse(content)):
+            if isinstance(node, ast.ImportFrom):
+                for element in node.names:
+                    new_obj = {}
+                    new_obj["from_what"] = node.module
+                    new_obj["what"] = element.name
+                    new_obj["as_what"] = ""
+                    try:
+                        new_obj["as_what"] = element.asname
+                    except Exception:
+                        pass
+                    new_obj["module_path"] = module_path
+                    ret.append(new_obj)
+            elif isinstance(node, ast.Import):
+                for element in node.names:
+                    new_obj = {}
+                    new_obj["from_what"] = None
+                    new_obj["what"] = element.name
+                    try:
+                        new_obj["as_what"] = element.asname
+                    except Exception:
+                        pass
+                    new_obj["module_path"] = module_path
+                    ret.append(new_obj)
     return ret
 
 
