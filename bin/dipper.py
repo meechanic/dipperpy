@@ -16,7 +16,7 @@ def parse_args(argv):
     parser.add_argument("-e", "--depth", type=int, help="Depth")
     parser.add_argument("-p", "--path", type=str, help="Filesystem path to module")
     parser.add_argument("-m", "--module", type=str, help="Module name")
-    parser.add_argument("--output", type=str, help="Output modules | functions | classes | data")
+    parser.add_argument("--output", type=str, help="Output modules | functions | classes | data | all")
     return parser.parse_args(sys.argv[1:])
 
 
@@ -45,6 +45,15 @@ def main():
         elif args.output == "imports":
             for h in dir_internals:
                 obj = obj + list_imports_by_module_path(h["module_name"])
+        elif args.output == "all":
+            obj = {}
+            for h in dir_internals:
+                obj[h["module_name"]] = {}
+                obj[h["module_name"]]["classes"] = list_classes_by_module_path(h["module_name"])
+                obj[h["module_name"]]["modules"] = list_modules_by_module_path(h["module_name"])
+                obj[h["module_name"]]["data"] = list_data_by_module_path(h["module_name"])
+                obj[h["module_name"]]["functions"] = list_functions_by_module_path(h["module_name"])
+                obj[h["module_name"]]["imports"] = list_imports_by_module_path(h["module_name"])
         else:
             obj = dir_internals
     elif args.sys_paths:
@@ -71,6 +80,13 @@ def main():
             obj = list_functions_by_module_path(module_path)
         elif args.output == "imports":
             obj = list_imports_by_module_path(module_path)
+        elif args.output == "all":
+            obj = {module_path: {}}
+            obj[module_path]["classes"] = list_classes_by_module_path(module_path)
+            obj[module_path]["modules"] = list_modules_by_module_path(module_path)
+            obj[module_path]["data"] = list_data_by_module_path(module_path)
+            obj[module_path]["functions"] = list_functions_by_module_path(module_path)
+            obj[module_path]["imports"] = list_imports_by_module_path(module_path)
         else:
             pass
     json.dump(obj, sys.stdout, indent=4, default=str, ensure_ascii=False)

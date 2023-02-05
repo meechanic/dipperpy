@@ -28,17 +28,20 @@ def eprint_exception(e, print_traceback=True, need_exit=True):
 
 def list_modules_by_module_path(module_path):
     ret = []
-    module = pydoc.importfile(module_path)
-
-    # code below inspired by the pydoc source
-    modpkgs_names = set()
-    if hasattr(module, '__path__'):
-        for importer, modname, ispkg in pkgutil.iter_modules(module.__path__):
-            modpkgs_names.add(modname)
-    for key, value in inspect.getmembers(module, inspect.ismodule):
-        if value.__name__.startswith(module.__name__ + '.') and key not in modpkgs_names:
-            ret.append({"name": value.__name__, "module_path": module_path})
-
+    module = None
+    try:
+        module = pydoc.importfile(module_path)
+    except pydoc.ErrorDuringImport:
+        pass
+    if module:
+        # code below inspired by the pydoc source
+        modpkgs_names = set()
+        if hasattr(module, '__path__'):
+            for importer, modname, ispkg in pkgutil.iter_modules(module.__path__):
+                modpkgs_names.add(modname)
+        for key, value in inspect.getmembers(module, inspect.ismodule):
+            if value.__name__.startswith(module.__name__ + '.') and key not in modpkgs_names:
+                ret.append({"name": value.__name__})
     return ret
 
 
@@ -57,23 +60,33 @@ def get_files_list_py(path):
 
 def list_classes_by_module_path(module_path):
     ret = []
-    module = pydoc.importfile(module_path)
-    for member in inspect.getmembers(module, inspect.isclass):
-        if member[1].__module__ == module.__name__:
-            ret.append( {"name": member[1].__name__, "qualname": member[1].__qualname__, "module_path": module_path} )
+    module = None
+    try:
+        module = pydoc.importfile(module_path)
+    except pydoc.ErrorDuringImport:
+        pass
+    if module:
+        for member in inspect.getmembers(module, inspect.isclass):
+            if member[1].__module__ == module.__name__:
+                ret.append( {"name": member[1].__name__, "qualname": member[1].__qualname__} )
     return ret
 
 
 def list_functions_by_module_path(module_path):
     ret = []
-    module = pydoc.importfile(module_path)
+    module = None
     try:
-        all = module.__all__
-    except AttributeError:
-        all = None
-    for member in inspect.getmembers(module, inspect.isroutine):
-        if (all is not None or inspect.isbuiltin(member[1]) or inspect.getmodule(member[1]) is module):
-            ret.append( {"name": member[0], "module_path": module_path} )
+        module = pydoc.importfile(module_path)
+    except pydoc.ErrorDuringImport:
+        pass
+    if module:
+        try:
+            all = module.__all__
+        except AttributeError:
+            all = None
+        for member in inspect.getmembers(module, inspect.isroutine):
+            if (all is not None or inspect.isbuiltin(member[1]) or inspect.getmodule(member[1]) is module):
+                ret.append( {"name": member[0]} )
     return ret
 
 
@@ -92,7 +105,6 @@ def list_imports_by_module_path(module_path):
                         new_obj["as_what"] = element.asname
                     except Exception:
                         pass
-                    new_obj["module_path"] = module_path
                     ret.append(new_obj)
             elif isinstance(node, ast.Import):
                 for element in node.names:
@@ -103,18 +115,22 @@ def list_imports_by_module_path(module_path):
                         new_obj["as_what"] = element.asname
                     except Exception:
                         pass
-                    new_obj["module_path"] = module_path
                     ret.append(new_obj)
     return ret
 
 
 def list_data_by_module_path(module_path):
     ret = []
-    module = pydoc.importfile(module_path)
-    reserved_names = ["__builtins__", "__cached__", "__doc__", "__file__", "__loader__", "__name__", "__package__", "__spec__"]
-    for member in inspect.getmembers(module, pydoc.isdata):
-        if member[0] not in reserved_names:
-            ret.append( {"name": member[0], "type_name": type(member[1]).__name__, "module_path": module_path} )
+    module = None
+    try:
+        module = pydoc.importfile(module_path)
+    except pydoc.ErrorDuringImport:
+        pass
+    if module:
+        reserved_names = ["__builtins__", "__cached__", "__doc__", "__file__", "__loader__", "__name__", "__package__", "__spec__"]
+        for member in inspect.getmembers(module, pydoc.isdata):
+            if member[0] not in reserved_names:
+                ret.append( {"name": member[0], "type_name": type(member[1]).__name__} )
     return ret
 
 
